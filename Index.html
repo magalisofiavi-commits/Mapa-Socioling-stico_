@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Sociolingüístico de Villavicencio - Español Llanero</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 600px; width: 100%; border-radius: 24px; z-index: 1; box-shadow: inset 0 2px 10px rgba(0,0,0,0.1); }
+        .marker-label {
+            background: white;
+            border: 2px solid #4f46e5;
+            border-radius: 8px;
+            padding: 4px 10px;
+            font-weight: 800;
+            font-size: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .glossary-card {
+            transition: transform 0.2s ease;
+        }
+        .glossary-card:hover {
+            transform: translateY(-4px);
+        }
+        audio::-webkit-media-controls-panel {
+            background-color: #f1f5f9;
+        }
+        .audio-card {
+            background: white;
+            border-radius: 1.5rem;
+            border: 1px solid #e2e8f0;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .leaflet-popup-content-wrapper {
+            border-radius: 1rem;
+            padding: 5px;
+        }
+        .analysis-tag {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-900 leading-tight">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <!-- Encabezado -->
+        <header class="mb-10 text-center">
+            <h1 class="text-4xl md:text-5xl font-black text-slate-900 mb-2 tracking-tighter italic uppercase text-balance">Villavicencio: <span class="text-indigo-600 underline decoration-indigo-200">Mapa Sociolingüístico</span></h1>
+            <p class="text-xl text-slate-600 font-bold italic">Geografía Lingüística, Jergas y Habla Regional</p>
+        </header>
+
+        <!-- Bloque Superior: Mapa y Leyendas -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+            <div class="lg:col-span-1 space-y-4">
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
+                    <h2 class="font-black text-slate-800 mb-4 border-b pb-2 uppercase text-xs tracking-widest text-center">Leyenda de Zonas</h2>
+                    <ul class="space-y-3 text-[11px] font-bold text-slate-700">
+                        <li class="flex items-center"><span class="w-4 h-4 bg-orange-500 rounded-full mr-3"></span> Comercial (Centro / Catama)</li>
+                        <li class="flex items-center"><span class="w-4 h-4 bg-blue-500 rounded-full mr-3"></span> Urbano / Residencial</li>
+                        <li class="flex items-center"><span class="w-4 h-4 bg-emerald-600 rounded-full mr-3"></span> Élite (Caudal/Buque)</li>
+                        <li class="flex items-center"><span class="w-4 h-4 bg-red-600 rounded-full mr-3"></span> Riesgo (Santa Fe/Guatiquía)</li>
+                        <li class="flex items-center"><span class="w-4 h-4 bg-purple-600 rounded-full mr-3"></span> Universidades</li>
+                    </ul>
+                </div>
+
+
+                < <div class="bg-indigo-700 p-6 rounded-2xl shadow-lg text-white">
+                    <h2 class="font-black mb-4 border-b border-indigo-400 pb-2 uppercase text-xs tracking-widest text-indigo-100 italic">Rasgos del Habla</h2>
+                    <div class="space-y-4 text-[12px] font-medium leading-relaxed">
+                        <p><strong class="text-indigo-200 uppercase tracking-tighter block mb-1 underline border-indigo-500">Abreviación:</strong> Uso constante de <i>"pa"</i> (para) y <i>"pal"</i> (para el).</p>
+                        <p><strong class="text-indigo-200 uppercase tracking-tighter block mb-1 underline border-indigo-500">Aspiración (H/S):</strong> La 's' final se aspira o se convierte en 'h' glotal. Ej: <i>"Lah jocho"</i> (Las ocho).</p>
+                        <p><strong class="text-indigo-200 uppercase tracking-tighter block mb-1 underline border-indigo-500">Voseo Regional:</strong> Uso de formas verbales como <i>"Caminá"</i>, <i>"Vení"</i>, <i>"Tenés"</i> en el trato cercano.</p>
+                        <p><strong class="text-indigo-200 uppercase tracking-tighter block mb-1 underline border-indigo-500">Registro Informal:</strong> Jerga urbana <i>"Nea", "Marica", "Gonorrea"</i>.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-3">
+                <div class="bg-white p-2 rounded-[2rem] shadow-xl border border-slate-200">
+                    <div id="map"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN DE ANÁLISIS DE AUDIOS - TODOS LOS SUJETOS -->
+        <div class="mb-12">
+            <div class="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+                <h2 class="text-4xl font-black text-slate-800 border-l-8 border-indigo-600 pl-4 uppercase tracking-tighter italic">Análisis Profundo de Muestras</h2>
+                <span class="text-slate-400 font-bold uppercase text-xs tracking-widest bg-slate-100 px-3 py-1 rounded-full">Evidencia Lingüística Detallada</span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Sujeto 1 -->
+                <div class="audio-card border-l-4 border-l-red-500">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-2 bg-red-100 text-red-600 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                        </div>
+                        <h3 class="font-black uppercase italic text-slate-800 text-sm">S1: Desempleado (Informal)</h3>
+                    </div>
+                    <audio controls class="w-full mb-4">
+                        <source src="desempleado.mp3" type="audio/mpeg">
+                    </audio>
+                    <div class="bg-slate-50 p-4 rounded-xl text-sm italic space-y-2">
+                        <p><strong class="text-indigo-600">Origen:</strong> El sujeto proviene de Puerto Tejada, Cauca, lo que aporta una perspectiva externa sobre la fonética local.</p>
+                        <p><strong class="text-indigo-600">Observación Dialectal:</strong> Identifica una marcada fragmentación: algunos habitantes mantienen el habla netamente <span class="text-orange-600 font-bold">llanera</span>, mientras otros han adoptado modismos <span class="text-emerald-600 font-bold">paisas</span>.</p>
+                        <p><strong class="text-indigo-600">Influencia Andina:</strong> Resalta el uso constante de <span class="text-blue-600 font-bold">"veci"</span> y <span class="text-blue-600 font-bold">"sumercé"</span>, denotando la fuerte migración del altiplano hacia Villavicencio.</p>
+                        <p><strong class="text-indigo-600">Rasgos:</strong> Elisión de la 'd' intervocálica (ej: <i>"complicao"</i>) y aspiración de la 's' final.</p>
+                    </div>
+                </div>
+
+                <!-- Sujeto 2 -->
+                <div class="audio-card border-l-4 border-l-emerald-500">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-2 bg-emerald-100 text-emerald-600 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                        </div>
+                        <h3 class="font-black uppercase italic text-slate-800 text-sm">S2: Funcionario (CMJ)</h3>
+                    </div>
+                    <audio controls class="w-full mb-4">
+                        <source src="cmj.mp3" type="audio/mpeg">
+                    </audio>
+                     <p><strong class="text-indigo-600">Acento:</strong> Habla institucional controlada, pero con el "golpe" llanero en frases largas.</p>
+                        <p><strong class="text-indigo-600">Rasgos:</strong> Mayor cuidado consonántico; persiste la aspiración de la 's' en habla rápida.</p>
+                        <p><strong class="text-indigo-600">Léxico:</strong> Tecnicismos administrativos y trato de <i>"usted"</i> formal.</p>
+                    </div>
+                </div>
+
+                <!-- Sujeto 3 -->
+                <div class="audio-card border-l-4 border-l-orange-500">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-2 bg-orange-100 text-orange-600 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                        </div>
+                        <h3 class="font-black uppercase italic text-slate-800 text-sm">S3: Vendedora Ambulante</h3>
+                    </div>
+                    <audio controls class="w-full mb-4">
+                        <source src="vendedor informal.mp3" type="audio/mpeg">
+                    </audio>
+                    <div class="bg-slate-50 p-4 rounded-xl full-analysis text-slate-700 space-y-3">
+                        <p><b class="text-orange-700 uppercase tracking-widest block text-[10px]">Estrategia:</b> Cortesía afectiva (<i>"Mi amor", "Mona"</i>).</p>
+                        <p><b class="text-orange-700 uppercase tracking-widest block text-[10px]">Fonética:</b> Velocidad acelerada con síncopas (<i>"pa'"</i>).</p>
+                        <p><strong class="text-indigo-600">Acento:</strong> Melódico y persuasivo, con variaciones tonales para captar la atención (pregón).</p>
+                        <p><strong class="text-indigo-600">Rasgos:</strong> Seseo marcado y reducción silábica para agilizar el discurso de venta.</p>
+                        <p><strong class="text-indigo-600">Léxico:</strong> Vocativos de confianza (<i>"mi amor", "mona", "veci"</i>) para romper el hielo.</p>
+                    </div>
+                </div>
+
+                <!-- Sujeto 4 -->
+                <div class="audio-card border-l-4 border-l-purple-600">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-2 bg-purple-100 text-purple-600 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                        </div>
+                        <h3 class="font-black uppercase italic text-slate-800 text-sm">S4: Líder Sindical</h3>
+                    </div>
+                    <audio controls class="w-full mb-4">
+                        <source src="sindicalista.mp3" type="audio/mpeg">
+                    </audio>
+                    <div class="bg-slate-50 p-4 rounded-xl full-analysis text-slate-700 space-y-3">
+                        <p><b class="text-purple-700 uppercase tracking-widest block text-[10px]">Retórica:</b> Lenguaje apelativo y arengas populares.</p>
+                        <p><b class="text-purple-700 uppercase tracking-widest block text-[10px]">Fonética:</b> Aspiración de 's' ante consonante.</p>
+ <h4 class="font-bold text-sm text-slate-700 mb-1 underline">Fenómenos Observados</h4>
+                                <ul class="text-xs space-y-1 text-slate-600 list-disc pl-4">
+                                    <li><strong>Léxico Reivindicativo:</strong> Uso frecuente de términos como "condiciones dignas", "estabilidad laboral" y "poder adquisitivo".</li>
+                                    <li><strong>Contraste Semántico:</strong> Diferenciación entre "oferta/demanda" (lenguaje técnico) y "ponerse en los zapatos de la gente" (lenguaje empático).</li>
+                                    <li><strong>Crítica al Estándar:</strong> Cuestionamiento de la brecha salarial entre altos cargos y trabajadores de base.</li>
+                                </ul>
+                    </div>
+                </div>
+
+                <!-- Sujeto 5 -->
+                <div class="audio-card border-l-4 border-l-blue-600">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+                        </div>
+                        <h3 class="font-black uppercase italic text-slate-800 text-sm">S5: Empleador</h3>
+                    </div>
+                    <audio controls class="w-full mb-4">
+                        <source src="empleador.mp3" type="audio/mpeg">
+                    </audio>
+                    <div class="bg-slate-50 p-4 rounded-xl full-analysis text-slate-700 space-y-3">
+                        <p><b class="text-blue-800 uppercase tracking-widest block text-[10px]">Ideología:</b> Búsqueda de un español neutro y profesional.</p>
+                        <p><b class="text-blue-800 uppercase tracking-widest block text-[10px]">Control:</b> Prohibición de jergas populares (<i>"nea"</i>).</p>
+   <h4 class="font-bold text-sm text-slate-700 mb-1 underline">Fenómenos Observados</h4>
+                                <ul class="text-xs space-y-1 text-slate-600 list-disc pl-4">
+                                    <li><strong>Neutralización del acento:</strong> Esfuerzo consciente por eliminar regionalismos llaneros frente al cliente.</li>
+                                    <li><strong>Diglosia laboral:</strong> Diferencia marcada entre el lenguaje "de bodega" e "interno" frente al lenguaje corporativo.</li>
+                                    <li><strong>Léxico Jerárquico:</strong> Preferencia por términos como "Gerente" o "Nombre propio" sobre "Patrón" o "Veci".</li>
+                                </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN DE GLOSARIOS -->
+        <div class="space-y-8 mb-12">
+            <h2 class="text-4xl font-black text-slate-800 border-l-8 border-indigo-600 pl-4 uppercase tracking-tighter italic">Glosarios Especializados</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Albañilería -->
+                <div class="glossary-card bg-white p-8 rounded-3xl shadow-md border border-slate-200">
+                    <h3 class="text-xl font-black text-slate-800 mb-6 uppercase tracking-tight italic text-indigo-600 border-b pb-2">Albañilería</h3>
+                    <div class="space-y-2 text-[12px] text-slate-600 font-bold italic">
+                        <p><span class="text-indigo-700 uppercase">CHUPA:</span> Ayudante de mezclas.</p>
+                        <p><span class="text-indigo-700 uppercase">FLECHAR:</span> Alineación con hilos.</p>
+                        <p><span class="text-indigo-700 uppercase">PATO:</span> Dobladora de varillas.</p>
+                        <p><span class="text-indigo-700 uppercase">BOQUILLERA:</span> Regla de nivelación.</p>
+                        <p><span class="text-indigo-700 uppercase">NIVEL DE MANO:</span> Herramienta para asegurar horizontalidad.</p>
+                        <p><span class="text-indigo-700 uppercase">MORTERO:</span> Mezcla de arena, cemento y agua.</p>
+                        <p><span class="text-indigo-700 uppercase">PLOMADA:</span> Pesa para verificar verticalidad.</p>
+                        <p><span class="text-indigo-700 uppercase">FRISADO:</span> Revoque de la pared.</p>
+                        <p><span class="text-indigo-700 uppercase">CHAZO:</span> Tapón para asegurar tornillos.</p>
+                        <p><span class="text-indigo-700 uppercase">REMATE:</span> Acabado final.</p>
+
+                    </div>
+                </div>
+
+                <!-- Telefonía -->
+                <div class="glossary-card bg-white p-8 rounded-3xl shadow-md border border-slate-200">
+                    <h3 class="text-xl font-black text-slate-800 mb-6 uppercase tracking-tight italic text-emerald-600 border-b pb-2">Telefonía</h3>
+                    <div class="space-y-2 text-[12px] text-slate-700 font-bold italic">
+                        <p><span class="text-emerald-700 uppercase">SCRIPT:</span> Guion de atención.</p>
+                        <p><span class="text-emerald-700 uppercase">TIPIFICACIÓN:</span> Categorización del caso.</p>
+                        <p><strong class="text-emerald-700 uppercase">Escalamiento:</strong> Pasar el caso a un superior.</p>
+                        <p><strong class="text-emerald-700 uppercase">Hold:</strong> Tiempo de espera en línea.</p>
+                        <p><strong class="text-emerald-700 uppercase">Back Office:</strong> Equipo de soporte interno.</p>
+                        <p><strong class="text-emerald-700 uppercase">Roaming:</strong> Itinerancia de datos fuera de zona.</p>
+                        <p><strong class="text-emerald-700 uppercase">Churn:</strong> Tasa de cancelación de clientes.</p>
+                        <p><strong class="text-emerald-700 uppercase">Portabilidad:</strong> Cambiar de operador manteniendo el número.</p>
+                        <p><strong class="text-emerald-700 uppercase">Prepago/Pospago:</strong> Modalidades de pago de servicio.</p>
+                    </div>
+                </div>
+
+                <!-- Gastronomía -->
+                <div class="glossary-card bg-amber-50 p-8 rounded-3xl shadow-md border border-amber-200">
+                    <h3 class="text-xl font-black text-amber-900 mb-6 uppercase tracking-tight italic border-b border-amber-200 pb-2">Gastronomía</h3>
+                    <div class="space-y-2 text-[12px] text-amber-950 font-bold italic">
+                        <p><span class="text-amber-700 uppercase">MAMONA:</span> Ternera asada.</p>
+                        <p><span class="text-amber-700 uppercase">TUNGOS:</span> Envueltos de arroz.</p>
+                        <p><span class="uppercase text-amber-700">Pan de Arroz:</span> Snack insignia crocante.</p>
+                        <p><span class="uppercase text-amber-700">Palo a Pique:</span> Fríjol con arroz.</p>
+                        <p><span class="uppercase text-amber-700">Sopa de Mondongo:</span> Sopa de callo con verduras.</p>
+                        <p><span class="uppercase text-amber-700">Ayacas:</span> Versión regional del tamal.</p>
+                        <p><span class="uppercase text-amber-700">Tamales:</span> Masa de maíz rellena de carne.</p>
+                        <p><span class="uppercase text-amber-700">Envueltos:</span> Masa de maíz tierno o arroz.</p>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VOCATIVOS REALES -->
+         <div class="mb-12">
+            <h2 class="text-4xl font-black text-slate-800 border-l-8 border-indigo-600 pl-4 uppercase tracking-tighter italic mb-8">Vocativos Reales de la Región</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 font-black italic uppercase text-center text-[11px]">
+                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-800 border border-indigo-200 shadow-sm">Pija</div>
+                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-800 border border-indigo-200 shadow-sm">Pariente</div>
+                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-800 border border-indigo-200 shadow-sm">Veci</div>
+                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-800 border border-indigo-200 shadow-sm">Sumercé</div>
+                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-800 border border-indigo-200 shadow-sm">Nea</div>
+                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-800 border border-indigo-200 shadow-sm">Marica</div>
+                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-800 border border-indigo-200 shadow-sm">Pirobo</div>
+                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-800 border border-indigo-200 shadow-sm">Parce</div>
+                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-800 border border-indigo-200 shadow-sm">Papi</div>
+                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-800 border border-indigo-200 shadow-sm">Mijo / Mija</div>
+                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-800 border border-indigo-200 shadow-sm">Güevón</div>
+                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-800 border border-indigo-200 shadow-sm">Perro</div>
+                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-800 border border-indigo-200 shadow-sm">Jefe</div>
+                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-800 border border-indigo-200 shadow-sm">Caballero / Señorita</div>
+                <div class="bg-indigo-100 p-4 rounded-xl text-indigo-800 border border-indigo-200 shadow-sm">Don / Doña</div>
+            </div>
+        </div>
+
+       <footer class="mt-16 py-8 text-center border-t border-slate-200">
+            <p class="text-slate-400 text-[10px] font-black uppercase tracking-[0.3em]">Investigación Sociolingüística - Villavicencio, Meta</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([4.135, -73.62], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OSM' }).addTo(map);
+
+        var locations = [
+            { 
+                name: "Santa Fe", 
+                coords: [4.148, -73.628], 
+                color: "#dc2626", 
+                content: `
+                    <span class="analysis-tag bg-red-100 text-red-700 border border-red-200">Riesgo / Marginal</span>
+                    <h4 class="font-black text-slate-900 text-lg mb-1 uppercase">Barrio Santa Fe</h4>
+                    <p class="text-xs text-slate-600 mb-3 leading-relaxed">Zona de alta densidad de léxico marginal ("ñero") y elisión sistemática de consonantes.</p>
+                    <div class="space-y-2 border-t pt-2">
+                        <p class="text-[10px] uppercase font-bold text-slate-500">Rasgos Fonéticos:</p>
+                        <ul class="text-[11px] list-disc pl-4 text-slate-700">
+                            <li>Yeísmo rehilado fuerte.</li>
+                            <li>Seseo con aspiración glotal constante.</li>
+                        </ul>
+                        <p class="text-[10px] uppercase font-bold text-slate-500 mt-2">Léxico Clave:</p>
+                        <p class="text-[11px] italic bg-slate-100 p-2 rounded">"Nea", "Socio", "Carechimba", "Paila", "Azote".</p>
+                    </div>
+                ` 
+            },
+            { 
+                name: "Guatiquía", 
+                coords: [4.158, -73.640], 
+                color: "#dc2626", 
+                content: `
+                    <span class="analysis-tag bg-red-100 text-red-700 border border-red-200">Riesgo / Estigmatizado</span>
+                    <h4 class="font-black text-slate-900 text-lg mb-1 uppercase">Guatiquía</h4>
+                    <p class="text-xs text-slate-600 mb-3 leading-relaxed">Habla urbana de calle con fuerte influencia del narcotráfico y la informalidad total.</p>
+                    <div class="space-y-2 border-t pt-2">
+                        <p class="text-[10px] uppercase font-bold text-slate-500">Rasgos:</p>
+                        <ul class="text-[11px] list-disc pl-4 text-slate-700">
+                            <li>Acentuación en la penúltima sílaba muy marcada.</li>
+                            <li>Uso de "parce" como único vocativo.</li>
+                        </ul>
+                        <p class="text-[11px] italic bg-slate-100 p-2 rounded">Léxico: "Vuelta", "Tierra", "Encaletar", "Pirobo".</p>
+                    </div>
+                `
+            },
+            { 
+                name: "El Popular", 
+                coords: [4.142, -73.615], 
+                color: "#3b82f6", 
+                content: `
+                    <span class="analysis-tag bg-blue-100 text-blue-700 border border-blue-200">Urbano / Popular</span>
+                    <h4 class="font-black text-slate-900 text-lg mb-1 uppercase">El Popular</h4>
+                    <p class="text-xs text-slate-600 mb-3 leading-relaxed">Español llanero urbano estándar. Mezcla de migración campesina y ciudad.</p>
+                    <div class="space-y-2 border-t pt-2">
+                        <ul class="text-[11px] list-disc pl-4 text-slate-700">
+                            <li>Confusión líquida (r/l) esporádica.</li>
+                            <li>Trato de "Sumercé" por influencia boyacense migratoria.</li>
+                        </ul>
+                        <p class="text-[11px] italic bg-blue-50 p-2 rounded text-blue-900">"¡Oiga pariente!", "Veci mándeme esto".</p>
+                    </div>
+                `
+            },
+            { 
+                name: "Centro", 
+                coords: [4.151, -73.636], 
+                color: "#f97316", 
+                content: `
+                    <span class="analysis-tag bg-orange-100 text-orange-700 border border-orange-200">Comercial</span>
+                    <h4 class="font-black text-slate-900 text-lg mb-1 uppercase">Sector Centro</h4>
+                    <p class="text-xs text-slate-600 mb-3 leading-relaxed">Español neutro transaccional. Alta frecuencia de imperativos de cortesía.</p>
+                    <div class="space-y-2 border-t pt-2">
+                        <ul class="text-[11px] list-disc pl-4 text-slate-700">
+                            <li>Uso excesivo de "Usted" (Usteo).</li>
+                            <li>Entonación ascendente para ventas (Pregón comercial).</li>
+                        </ul>
+                    </div>
+                `
+            },
+            { 
+                name: "Avenida Catama", 
+                coords: [4.145, -73.605], 
+                color: "#f97316", 
+                content: `
+                    <span class="analysis-tag bg-orange-100 text-orange-700 border border-orange-200">Comercial / Servicios</span>
+                    <h4 class="font-black text-slate-900 text-lg mb-1 uppercase">Av. Catama</h4>
+                    <p class="text-xs text-slate-600 mb-3 leading-relaxed">Zona de alto flujo logístico y talleres. Predominio de jerga técnica-mecánica y transporte.</p>
+                    <div class="space-y-2 border-t pt-2">
+                        <p class="text-[10px] uppercase font-bold text-slate-500">Análisis:</p>
+                        <ul class="text-[11px] list-disc pl-4 text-slate-700">
+                            <li>Acentuación fuerte y ruidosa para sobreponerse al tráfico.</li>
+                            <li>Léxico de transporte: "Mula", "Camello", "Grasiento", "Repuesto".</li>
+                        </ul>
+                        <p class="text-[11px] italic bg-orange-50 p-2 rounded text-orange-900">"¡Hágale jefe!", "Esa pieza está paila".</p>
+                    </div>
+                `
+            },
+            { 
+                name: "El Caudal", 
+                coords: [4.163, -73.638], 
+                color: "#059669", 
+                content: `
+                    <span class="analysis-tag bg-emerald-100 text-emerald-700 border border-emerald-200">Élite / Residencial</span>
+                    <h4 class="font-black text-slate-900 text-lg mb-1 uppercase">El Caudal</h4>
+                    <p class="text-xs text-slate-600 mb-3 leading-relaxed">Sociolecto de prestigio. Evitación consciente de rasgos campesinos o marginales.</p>
+                    <div class="space-y-2 border-t pt-2">
+                        <p class="text-[10px] uppercase font-bold text-slate-500">Análisis:</p>
+                        <ul class="text-[11px] list-disc pl-4 text-slate-700">
+                            <li>Pronunciación clara de la 's' intervocálica.</li>
+                            <li>Anglicismos frecuentes: "Top", "Full", "Okey".</li>
+                        </ul>
+                        <p class="text-[11px] italic bg-emerald-50 p-2 rounded text-emerald-900">"Súper bien", "Nada que ver", "Literal".</p>
+                    </div>
+                `
+            },
+            { 
+                name: "El Buque", 
+                coords: [4.132, -73.633], 
+                color: "#059669", 
+                content: `
+                    <span class="analysis-tag bg-emerald-100 text-emerald-700 border border-emerald-200">Élite / Nuevo</span>
+                    <h4 class="font-black text-slate-900 text-lg mb-1 uppercase">El Buque</h4>
+                    <p class="text-xs text-slate-600 mb-3 leading-relaxed">Variante "fresa/gomela" del llanero. Entonación plana y pausada.</p>
+                    <div class="space-y-2 border-t pt-2 text-[11px] text-slate-700">
+                        <p>Predomina el uso de "Marica" como muletilla de cohesión grupal de clase alta.</p>
+                    </div>
+                `
+            },
+            { 
+                name: "Porfía", 
+                coords: [4.085, -73.635], 
+                color: "#3b82f6", 
+                content: `
+                    <span class="analysis-tag bg-blue-100 text-blue-700 border border-blue-200">Urbano / Expansión</span>
+                    <h4 class="font-black text-slate-900 text-lg mb-1 uppercase">Ciudad Porfía</h4>
+                    <p class="text-xs text-slate-600 mb-3 leading-relaxed">Híbrido lingüístico. Gran influencia del voseo regional por contacto con zona rural.</p>
+                    <div class="space-y-2 border-t pt-2 text-[11px] text-slate-700">
+                        <p>Uso extensivo de "Pija" y "Pariente" debido a la cercanía con el campo.</p>
+                    </div>
+                `
+            },
+            // NUEVAS ADICIONES UNIVERSITARIAS (EN MORADO)
+            { 
+                name: "Universidad de los Llanos (San Antonio)", 
+                coords: [4.155, -73.637], 
+                color: "#9333ea", 
+                content: `
+                    <span class="analysis-tag bg-purple-100 text-purple-700 border border-purple-200">Educativo / Unillanos</span>
+                    <h4 class="font-black text-slate-900 text-lg mb-1 uppercase">Unillanos - San Antonio</h4>
+                    <p class="text-xs text-slate-600 mb-3 leading-relaxed">Punto de encuentro de diversas variantes regionales debido a la población estudiantil.</p>
+                    <div class="space-y-2 border-t pt-2 text-[11px] text-slate-700">
+                        <p>Predominio de un registro académico mezclado con jergas juveniles actuales.</p>
+                    </div>
+                `
+            },
+            { 
+                name: "Universidad Santo Tomás", 
+                coords: [4.123, -73.590], 
+                color: "#9333ea", 
+                content: `
+                    <span class="analysis-tag bg-purple-100 text-purple-700 border border-purple-200">Educativo / USTA</span>
+                    <h4 class="font-black text-slate-900 text-lg mb-1 uppercase">Santo Tomás</h4>
+                    <p class="text-xs text-slate-600 mb-3 leading-relaxed">Sede de la vía Puerto López. Influencia de sociolectos de estratos medios y altos.</p>
+                    <div class="space-y-2 border-t pt-2 text-[11px] text-slate-700">
+                        <p>Uso de lenguaje técnico-profesional con marcados modismos urbanos.</p>
+                    </div>
+                `
+            }
+        ];
+
+        locations.forEach(function(loc) {
+            var marker = L.circleMarker(loc.coords, { color: loc.color, fillColor: loc.color, fillOpacity: 0.7, radius: 11 }).addTo(map);
+            marker.bindTooltip(loc.name, { permanent: false, direction: 'top', className: 'marker-label' });
+            marker.bindPopup(loc.content, { maxWidth: 300 });
+        });
+    </script>
+</body>
+</html>
